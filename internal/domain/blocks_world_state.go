@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/pkg/sets"
-	"github.com/csvitor-dev/blocks-world-planning-agent.go/types"
+	"github.com/csvitor-dev/blocks-world-planning-agent.go/internal/types"
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/utils"
 )
 
