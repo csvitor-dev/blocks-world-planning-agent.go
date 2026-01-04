@@ -29,8 +29,12 @@ func (set Set[T]) IsSubsetOf(other Set[T]) bool {
 	return false
 }
 
+func (set Set[T]) Add(element T) {
+	set[element] = struct{}{}
+}
+
 func (set Set[T]) AddFrom(elements []T) {
-	for _, elem := range elements {
-		set[elem] = struct{}{}
+	for _, element := range elements {
+		set.Add(element)
 	}
 }

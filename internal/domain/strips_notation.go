@@ -1,4 +1,4 @@
-package types
+package domain
 
 import (
 	"slices"
@@ -40,4 +40,8 @@ func createActionsWithFacts(rawActions []string) (map[string][2][]string, sets.S
 
 func splitFacts(rawFacts string) []string {
 	return strings.Split(rawFacts, ";")
+}
+
+func (s StripsNotation) AvaliableFacts() sets.Set[string] {
+	return s.facts
 }
