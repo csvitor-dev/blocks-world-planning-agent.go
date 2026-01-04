@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/csvitor-dev/blocks-world-planning-agent.go/internal/domain"
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/pkg/filesystem"
-	"github.com/csvitor-dev/blocks-world-planning-agent.go/types"
 )
 
-func GetInstance(ref string) types.StripsNotation {
+func GetInstance(ref string) domain.StripsNotation {
 	file, err := filesystem.ResolvePath("./resources/planningsat", fmt.Sprintf("blocks-%s.strips", ref))
 
 	if err != nil {
@@ -21,10 +21,10 @@ func GetInstance(ref string) types.StripsNotation {
 		log.Fatalln(err)
 	}
 	separationLine := len(raw) - 3
-	actionsSet, states := raw[:separationLine-1], raw[separationLine+1:]
+	actionsSet, initialState, goalState := raw[:separationLine-1], raw[separationLine], raw[separationLine+1]
 
 	if len(actionsSet)%3 != 0 {
-		log.Fatalln(errors.New("domain_mapper: invalid length in STRIPS Notation file"))
+		log.Fatalln(len(actionsSet), errors.New("domain_mapper: invalid length in STRIPS Notation file"))
 	}
-	return types.NewStrips(actionsSet, states[0], states[1])
+	return domain.NewStrips(actionsSet, initialState, goalState)
 }
