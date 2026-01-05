@@ -1,16 +1,19 @@
 package domain
 
 import (
+	"errors"
 	"math"
 	"strings"
 
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/internal/domain/contracts"
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/internal/types"
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/pkg/sets"
+	"github.com/csvitor-dev/blocks-world-planning-agent.go/src/support/factories"
 )
 
 type Planning struct {
 	strips       StripsNotation
+	instanceId   string
 	_map         map[string]int
 	inverseMap   map[int]string
 	actions      map[string]types.Action
@@ -18,9 +21,10 @@ type Planning struct {
 	initialState sets.Set[int]
 	goalState    sets.Set[int]
 	stateSpace   *BlocksWorldState
+	showReport   bool
 }
 
-func NewPlanning(strips StripsNotation, instanceId string) (*Planning, error){
+func NewPlanning(strips StripsNotation, instanceId string) (*Planning, error) {
 	_map := mapFacts(strips)
 	inverseMap := inverseMapFacts(_map)
 	current := resolveFacts(strips.InitialState, _map)
@@ -32,12 +36,14 @@ func NewPlanning(strips StripsNotation, instanceId string) (*Planning, error){
 	}
 
 	return &Planning{
-		strips:     strips,
-		_map:       _map,
-		inverseMap: inverseMap,
-		actions:    actions,
+		strips:       strips,
+		instanceId:   instanceId,
+		_map:         _map,
+		inverseMap:   inverseMap,
+		actions:      actions,
 		initialState: current,
-		stateSpace: stateNode,
+		stateSpace:   stateNode,
+		showReport:   true,
 	}, nil
 }
 
@@ -48,6 +54,32 @@ func (p *Planning) Remap(state sets.Set[int]) sets.Set[string] {
 		remapped.Add(p.inverseMap[fact])
 	}
 	return remapped
+}
+
+func (p *Planning) OffReport() {
+	p.showReport = false
+}
+
+func (p *Planning) SetAlgorithm(algorithm string) error {
+	newPlanner := factories.MakeAlgorithm(algorithm)(p)
+
+	if newPlanner == nil {
+		return errors.New("algorithm not found")
+	}
+	p.planner = newPlanner
+	return nil
+}
+
+func (p *Planning) Plan() error {
+	_, err := p.planner.Execute()
+
+	return err
+}
+
+func (p *Planning) Copy() contracts.PlanningContract {
+	newPlanning, _ := NewPlanning(p.strips, p.instanceId)
+
+	return newPlanning
 }
 
 func mapFacts(strips StripsNotation) map[string]int {
