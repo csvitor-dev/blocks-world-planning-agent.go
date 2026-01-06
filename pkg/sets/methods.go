@@ -10,23 +10,51 @@ func (set Set[T]) Clone() Set[T] {
 }
 
 func (set Set[T]) Union(other Set[T]) Set[T] {
-	return set
+	out := set.Clone()
+
+	for v := range other {
+		out[v] = struct{}{}
+	}
+	return out
 }
 
 func (set Set[T]) Intersect(other Set[T]) Set[T] {
-	return set
+	out := make(Set[T])
+
+	for v := range set {
+		if _, exists := other[v]; exists {
+			out[v] = struct{}{}
+		}
+	}
+	return out
 }
 
 func (set Set[T]) Difference(other Set[T]) Set[T] {
-	return set
+	out := make(Set[T])
+
+	for v := range set {
+		if _, exists := other[v]; !exists {
+			out[v] = struct{}{}
+		}
+	}
+	return out
 }
 
 func (set Set[T]) Has(element T) bool {
-	return false
+	_, exists := set[element]
+	return exists
 }
 
 func (set Set[T]) IsSubsetOf(other Set[T]) bool {
-	return false
+	result := true
+
+	for v := range other {
+		if _, exists := set[v]; !exists {
+			result = false
+			break
+		}
+	}
+	return result
 }
 
 func (set Set[T]) Add(element T) {
