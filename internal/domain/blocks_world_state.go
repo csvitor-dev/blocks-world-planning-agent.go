@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/csvitor-dev/blocks-world-planning-agent.go/internal/domain/contracts"
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/internal/types"
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/pkg/sets"
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/utils"
@@ -12,7 +13,6 @@ import (
 type BlocksWorldState struct {
 	Id               string
 	Current          sets.Set[int]
-	Key              string
 	AvailableActions map[string]types.Action
 	Parent           *BlocksWorldState
 	G                int
@@ -24,22 +24,25 @@ func NewBlocksWorldState(current sets.Set[int], actions map[string]types.Action,
 	if len(realCost) > 1 {
 		return nil, errors.New("blocks_world_state: only one 'realCost' argument is allowed")
 	}
+	var cost int = 0
 
+	if len(realCost) == 1 {
+		cost = realCost[0]
+	}
 	state := &BlocksWorldState{
 		Id:      name,
 		Current: current,
-		Key:     sets.SortedString(current),
 		Parent:  parent,
-		G:       realCost[0],
+		G:       cost,
 		H:       0,
-		F:       realCost[0],
+		F:       cost,
 	}
 	state.AvailableActions = state.filterAvailableActions(actions)
 	return state, nil
 }
 
-func (s *BlocksWorldState) Successors(actions map[string]types.Action) []*BlocksWorldState {
-	var out []*BlocksWorldState
+func (s *BlocksWorldState) Successors(actions map[string]types.Action) []contracts.BlocksWorldState {
+	var out []contracts.BlocksWorldState
 
 	for name, action := range s.AvailableActions {
 		newState := s.expand(name, action, actions)
@@ -77,22 +80,26 @@ func resolveConsistentState(transition sets.Set[int], post sets.Set[int]) sets.S
 	return transition.Union(positive)
 }
 
+func (s *BlocksWorldState) Key() string {
+	return sets.SortedString(s.Current)
+}
+
 func (s *BlocksWorldState) String() string {
-	return fmt.Sprintf("State(%s)", s.Key)
+	return fmt.Sprintf("State(%s)", s.Key())
 }
 
-func (s *BlocksWorldState) Equals(other *BlocksWorldState) bool {
-	return s.Key == other.Key
+func (s *BlocksWorldState) Equals(other contracts.BlocksWorldState) bool {
+	return s.Key() == other.Key()
 }
 
-func (s *BlocksWorldState) LessThan(other *BlocksWorldState) bool {
-	return s.Key == other.Key
+func (s *BlocksWorldState) LessThan(other contracts.BlocksWorldState) bool {
+	return s.Key() == other.Key()
 }
 
-func (s *BlocksWorldState) GreaterThan(other *BlocksWorldState) bool {
-	return s.Key == other.Key
+func (s *BlocksWorldState) GreaterThan(other contracts.BlocksWorldState) bool {
+	return s.Key() == other.Key()
 }
 
 func (s *BlocksWorldState) Hash() int {
-	return int(utils.Hash(s.Key))
+	return int(utils.Hash(s.Key()))
 }

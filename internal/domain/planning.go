@@ -1,14 +1,20 @@
 package domain
 
 import (
-	"errors"
+	"fmt"
+	"log"
 	"math"
+	"runtime"
 	"strings"
+	"time"
+	"unsafe"
 
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/internal/domain/contracts"
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/internal/types"
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/pkg/sets"
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/src/support/factories"
+	"github.com/csvitor-dev/blocks-world-planning-agent.go/utils"
+	"github.com/csvitor-dev/blocks-world-planning-agent.go/utils/report"
 )
 
 type Planning struct {
@@ -22,6 +28,7 @@ type Planning struct {
 	goalState    sets.Set[int]
 	stateSpace   *BlocksWorldState
 	showReport   bool
+	sizeOf       uintptr
 }
 
 func NewPlanning(strips StripsNotation, instanceId string) (*Planning, error) {
@@ -29,7 +36,7 @@ func NewPlanning(strips StripsNotation, instanceId string) (*Planning, error) {
 	inverseMap := inverseMapFacts(_map)
 	current := resolveFacts(strips.InitialState, _map)
 	actions := resolveActions(strips.Actions, _map)
-	stateNode, err := NewBlocksWorldState(current, actions, "root-"+instanceId, nil)
+	state, err := NewBlocksWorldState(current, actions, "root-"+instanceId, nil)
 
 	if err != nil {
 		return nil, err
@@ -42,8 +49,9 @@ func NewPlanning(strips StripsNotation, instanceId string) (*Planning, error) {
 		inverseMap:   inverseMap,
 		actions:      actions,
 		initialState: current,
-		stateSpace:   stateNode,
+		stateSpace:   state,
 		showReport:   true,
+		sizeOf:       unsafe.Sizeof(state),
 	}, nil
 }
 
@@ -60,26 +68,101 @@ func (p *Planning) OffReport() {
 	p.showReport = false
 }
 
-func (p *Planning) SetAlgorithm(algorithm string) error {
-	newPlanner := factories.MakeAlgorithm(algorithm)(p)
-
-	if newPlanner == nil {
-		return errors.New("algorithm not found")
+func (p *Planning) Plan() {
+	if p.planner == nil {
+		log.Fatalln("No planning algorithm set.")
+		return
 	}
-	p.planner = newPlanner
-	return nil
+	statsBefore, statsAfter := runtime.MemStats{}, runtime.MemStats{}
+	runtime.GC()
+	runtime.ReadMemStats(&statsBefore)
+
+	start := time.Now()
+	solution, generatedNodes, exploredNodes := p.planner.Execute()
+	runtime.ReadMemStats(&statsAfter)
+	report := report.NewPlanningReport(statsBefore, statsAfter)
+	report.Elapsed = time.Since(start).Seconds()
+
+	log.Println("Planning completed successfully.")
+
+	if p.showReport == false {
+		fmt.Printf("Instance: %s\n", p.instanceId)
+
+		if solution != nil {
+			fmt.Printf("Solution Found! Steps: %d Time: %.6f s\n", len(solution), report.Elapsed)
+		} else {
+			fmt.Printf("No solution found. Time: %.6fs\n", report.Elapsed)
+		}
+		return
+	}
+	p.report(solution, generatedNodes, exploredNodes, report)
 }
 
-func (p *Planning) Plan() error {
-	_, err := p.planner.Execute()
+func (p *Planning) IsGoalState(state contracts.BlocksWorldState) bool {
+	return p.goalState.Equals(goal)
+}
 
-	return err
+func (p *Planning) CurrentState() contracts.BlocksWorldState {
+	return p.stateSpace
+}
+
+func (p *Planning) States() (sets.Set[int], sets.Set[int]) {
+	return p.initialState, p.goalState
+}
+
+func (p *Planning) Actions() map[string]types.Action {
+	return p.actions
 }
 
 func (p *Planning) Copy() contracts.PlanningContract {
 	newPlanning, _ := NewPlanning(p.strips, p.instanceId)
 
 	return newPlanning
+}
+
+func (p *Planning) SetAlgorithm(algorithm string) error {
+	newPlanner := factories.MakeAlgorithm(algorithm)(p)
+
+	if newPlanner == nil {
+		return fmt.Errorf("Algorithm %s not found.", algorithm)
+	}
+	p.planner = newPlanner
+	return nil
+}
+
+func (p *Planning) SetGoal(goal sets.Set[int]) {
+	p.goalState = goal
+}
+
+func (p *Planning) SetInitial(initial sets.Set[int]) {
+	p.initialState = initial
+}
+
+func (p *Planning) report(result []string, expansions int, explorations int, report report.PlanningReport) {
+	fmt.Println(strings.Repeat("=", 60))
+	fmt.Println(utils.Center("Execution summary", 60))
+	fmt.Println(strings.Repeat("=", 60))
+	fmt.Printf("Algorithm          : %s\n", p.planner.Name())
+	fmt.Printf("Instance           : %s\n", p.instanceId)
+	fmt.Printf("Time elapsed       : %.6f s\n", report.Elapsed)
+	fmt.Printf("Expanded nodes     : %d\n", expansions)
+	fmt.Printf("Explored nodes     : %d\n", explorations)
+	fmt.Printf("Total memory cost : %.2f KB\n", float64(explorations*int(p.sizeOf))/1024)
+	fmt.Printf(
+		"Memory usage      : Allocated=%.2f KB; Stack=%.2f KB; Heap=%.2f KB\n",
+		report.TotalAllocated, report.TotalStackInUse, report.TotalHeapInUse,
+	)
+	fmt.Println(strings.Repeat("-", 60))
+
+	if result != nil {
+		fmt.Printf("Solution found! Steps: %d\n", len(result))
+		for _, step := range result {
+			fmt.Println(step)
+		}
+	} else {
+		fmt.Println("No solution found")
+	}
+	fmt.Println(strings.Repeat("=", 60))
 }
 
 func mapFacts(strips StripsNotation) map[string]int {
