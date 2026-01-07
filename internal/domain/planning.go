@@ -99,7 +99,7 @@ func (p *Planning) Plan() {
 }
 
 func (p *Planning) IsGoalState(state contracts.BlocksWorldState) bool {
-	return p.goalState.Equals(goal)
+	return p.goalState.Equals(state.Current())
 }
 
 func (p *Planning) CurrentState() contracts.BlocksWorldState {

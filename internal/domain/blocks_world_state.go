@@ -12,7 +12,7 @@ import (
 
 type BlocksWorldState struct {
 	Id               string
-	Current          sets.Set[int]
+	current          sets.Set[int]
 	AvailableActions map[string]types.Action
 	Parent           *BlocksWorldState
 	G                int
@@ -31,7 +31,7 @@ func NewBlocksWorldState(current sets.Set[int], actions map[string]types.Action,
 	}
 	state := &BlocksWorldState{
 		Id:      name,
-		Current: current,
+		current: current,
 		Parent:  parent,
 		G:       cost,
 		H:       0,
@@ -52,7 +52,7 @@ func (s *BlocksWorldState) Successors(actions map[string]types.Action) []contrac
 }
 
 func (s *BlocksWorldState) expand(actionName string, action types.Action, actions map[string]types.Action) *BlocksWorldState {
-	transitionState := s.Current.Difference(action.Pre)
+	transitionState := s.current.Difference(action.Pre)
 	newState := resolveConsistentState(transitionState, action.Post)
 
 	st, _ := NewBlocksWorldState(newState, actions, actionName, s)
@@ -62,7 +62,7 @@ func (s *BlocksWorldState) expand(actionName string, action types.Action, action
 func (s *BlocksWorldState) filterAvailableActions(actions map[string]types.Action) map[string]types.Action {
 	out := make(map[string]types.Action)
 	for name, cond := range actions {
-		if cond.Pre.IsSubsetOf(s.Current) {
+		if cond.Pre.IsSubsetOf(s.current) {
 			out[name] = cond
 		}
 	}
@@ -80,8 +80,12 @@ func resolveConsistentState(transition sets.Set[int], post sets.Set[int]) sets.S
 	return transition.Union(positive)
 }
 
+func (s *BlocksWorldState) Current() sets.Set[int] {
+	return s.current
+}
+
 func (s *BlocksWorldState) Key() string {
-	return sets.SortedString(s.Current)
+	return sets.SortedString(s.current)
 }
 
 func (s *BlocksWorldState) String() string {

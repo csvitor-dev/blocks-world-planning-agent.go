@@ -57,6 +57,18 @@ func (set Set[T]) IsSubsetOf(other Set[T]) bool {
 	return result
 }
 
+func (set Set[T]) Equals(other Set[T]) bool {
+	result := true
+
+	for v := range other {
+		if _, exists := set[v]; !exists {
+			result = false
+			break
+		}
+	}
+	return result
+}
+
 func (set Set[T]) Add(element T) {
 	set[element] = struct{}{}
 }
