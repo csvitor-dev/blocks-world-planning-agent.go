@@ -7,10 +7,9 @@ import (
 
 type PlanningContract interface {
 	CurrentState() BlocksWorldState
-	States() map[string]sets.Set[int]
+	States() (sets.Set[int], sets.Set[int])
 	Actions() map[string]types.Action
 	Remap(state sets.Set[int]) sets.Set[string]
-	Solution(goal BlocksWorldState) []string
 	SetGoal(goal sets.Set[int])
 	SetInitial(initial sets.Set[int])
 	Copy() PlanningContract
