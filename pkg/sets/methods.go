@@ -48,8 +48,8 @@ func (set Set[T]) Has(element T) bool {
 func (set Set[T]) IsSubsetOf(other Set[T]) bool {
 	result := true
 
-	for v := range other {
-		if _, exists := set[v]; !exists {
+	for v := range set {
+		if _, exists := other[v]; !exists {
 			result = false
 			break
 		}
