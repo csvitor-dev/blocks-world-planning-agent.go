@@ -6,7 +6,6 @@ import (
 
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/internal/domain"
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/src/services/parser"
-	"github.com/csvitor-dev/blocks-world-planning-agent.go/src/support/factories"
 	"github.com/csvitor-dev/blocks-world-planning-agent.go/utils/cmd"
 )
 
@@ -21,21 +20,12 @@ func execute(ref, algorithm string, dontShowOutput bool) {
 	if dontShowOutput {
 		planning.OffReport()
 	}
-	planner := factories.MakeAlgorithm(algorithm)
-
-	if planner == nil {
-		log.Fatalf("Algorithm %s not found for instance %s", algorithm, ref)
-	}
-	planning.SetAlgorithm(planner(planning))
+	planning.SetAlgorithm(algorithm)
 
 	if err != nil {
 		log.Fatalf("Error while setting algorithm for instance %s: %s", ref, err)
 	}
-	err = planning.Plan()
-
-	if err != nil {
-		log.Fatalf("Error while planning for instance %s: %s", ref, err)
-	}
+	planning.Plan()
 }
 
 func main() {
@@ -48,7 +38,7 @@ func main() {
 	algorithm := flags["algorithm"].(string)
 	onlyExecute := flags["only-execute"].(bool)
 
-	if len(instances) > 0 {
+	if len(instances) == 1 {
 		execute(instances[0], algorithm, onlyExecute)
 		return
 	}
