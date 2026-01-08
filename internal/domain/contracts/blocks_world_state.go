@@ -6,8 +6,10 @@ import (
 )
 
 type BlocksWorldState interface {
+	Step() string
 	Current() sets.Set[int]
 	Successors(actions map[string]types.Action) []BlocksWorldState
+	Parent() BlocksWorldState
 	String() string
 	Key() string
 	Equals(other BlocksWorldState) bool

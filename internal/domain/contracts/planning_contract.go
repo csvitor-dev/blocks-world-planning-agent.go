@@ -7,6 +7,7 @@ import (
 
 type PlanningContract interface {
 	CurrentState() BlocksWorldState
+	IsGoalState(state BlocksWorldState) bool
 	States() (sets.Set[int], sets.Set[int])
 	Actions() map[string]types.Action
 	Remap(state sets.Set[int]) sets.Set[string]

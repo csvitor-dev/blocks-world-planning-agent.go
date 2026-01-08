@@ -35,6 +35,7 @@ func NewPlanning(strips StripsNotation, instanceId string) (*Planning, error) {
 	_map := mapFacts(strips)
 	inverseMap := inverseMapFacts(_map)
 	current := resolveFacts(strips.InitialState, _map)
+	goal := resolveFacts(strips.GoalState, _map)
 	actions := resolveActions(strips.Actions, _map)
 	state, err := NewBlocksWorldState(current, actions, "root-"+instanceId, nil)
 
@@ -49,6 +50,7 @@ func NewPlanning(strips StripsNotation, instanceId string) (*Planning, error) {
 		inverseMap:   inverseMap,
 		actions:      actions,
 		initialState: current,
+		goalState:    goal,
 		stateSpace:   state,
 		showReport:   true,
 		sizeOf:       unsafe.Sizeof(state),
@@ -99,7 +101,7 @@ func (p *Planning) Plan() {
 }
 
 func (p *Planning) IsGoalState(state contracts.BlocksWorldState) bool {
-	return p.goalState.Equals(state.Current())
+	return p.goalState.IsSubsetOf(state.Current())
 }
 
 func (p *Planning) CurrentState() contracts.BlocksWorldState {
@@ -147,9 +149,9 @@ func (p *Planning) report(result []string, expansions int, explorations int, rep
 	fmt.Printf("Time elapsed       : %.6f s\n", report.Elapsed)
 	fmt.Printf("Expanded nodes     : %d\n", expansions)
 	fmt.Printf("Explored nodes     : %d\n", explorations)
-	fmt.Printf("Total memory cost : %.2f KB\n", float64(explorations*int(p.sizeOf))/1024)
+	fmt.Printf("Total memory cost  : %.2f KB\n", float64(explorations*int(p.sizeOf))/1024)
 	fmt.Printf(
-		"Memory usage      : Allocated=%.2f KB; Stack=%.2f KB; Heap=%.2f KB\n",
+		"Memory usage       : Allocated=%.2f KB; Stack=%.2f KB; Heap=%.2f KB\n",
 		report.TotalAllocated, report.TotalStackInUse, report.TotalHeapInUse,
 	)
 	fmt.Println(strings.Repeat("-", 60))
